@@ -4,16 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="author" content="中国地质大学（北京）杨金旅">
-    <title>可视化时钟 - 星空版</title>
+    <title>可视化时钟 - 星穹 Chronos</title>
     <style>
         :root {
-            --bg: #020210;
-            --clock-bg: #0d111e;
-            --text: #e5e7eb;
-            --accent: #60a5fa;
-            --accent-glow: #3b82f6;
-            --second: #f43f5e;
-            --gold: #fbbf24;
+            --theme-h: 210;
+            --accent-r: 59; --accent-g: 130; --accent-b: 246;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -29,7 +24,6 @@
             overflow: hidden;
         }
 
-        /* ===== Canvas 星空背景 ===== */
         #starCanvas {
             position: fixed;
             inset: 0;
@@ -40,11 +34,17 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 36px;
+            gap: 24px;
             position: relative;
             z-index: 1;
         }
 
+        /* 标题区 */
+        .title-area {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
         .title {
             color: #6b7280;
             font-size: 13px;
@@ -52,46 +52,115 @@
             text-transform: uppercase;
             font-weight: 500;
         }
+        .mode-badge {
+            font-size: 11px;
+            letter-spacing: 3px;
+            padding: 4px 14px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8;
+            transition: all 0.4s;
+        }
 
-        /* ===== 旋转光环 ===== */
+        /* 旋转渐变光环 - 双层 */
         .glow-ring {
             position: absolute;
-            width: 370px;
-            height: 370px;
+            width: 400px; height: 400px;
             border-radius: 50%;
             border: 2px solid transparent;
-            background: conic-gradient(from 0deg, var(--accent-glow), var(--second), #a78bfa, var(--accent-glow)) border-box;
+            background: conic-gradient(from 0deg,
+                hsl(var(--theme-h), 80%, 50%),
+                hsl(calc(var(--theme-h) + 140), 60%, 55%),
+                #a78bfa,
+                hsl(var(--theme-h), 80%, 50%)) border-box;
             mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
             -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-            filter: blur(6px);
-            opacity: 0.5;
-            animation: ringRotate 12s linear infinite;
+            filter: blur(8px);
+            opacity: 0.4;
+            animation: ringRotate 14s linear infinite;
             pointer-events: none;
+            transition: all 0.6s;
+        }
+        .glow-ring-outer {
+            position: absolute;
+            width: 440px; height: 440px;
+            border-radius: 50%;
+            border: 1.5px solid transparent;
+            background: conic-gradient(from 180deg,
+                hsl(calc(var(--theme-h) + 70), 60%, 45%),
+                hsl(calc(var(--theme-h) + 210), 55%, 50%),
+                hsl(var(--theme-h), 70%, 48%),
+                hsl(calc(var(--theme-h) + 70), 60%, 45%)) border-box;
+            mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+            filter: blur(12px);
+            opacity: 0.25;
+            animation: ringRotate 20s linear infinite reverse;
+            pointer-events: none;
+            transition: all 0.6s;
         }
         @keyframes ringRotate { to { transform: rotate(360deg); } }
 
-        /* ===== 行星轨道系统 ===== */
+        /* 光环闪烁粒子 */
+        .ring-spark {
+            position: absolute;
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: #fff;
+            pointer-events: none;
+            z-index: 3;
+            box-shadow: 0 0 10px 3px hsl(var(--theme-h), 80%, 60%);
+            animation: ringSparkFade 2s ease-in-out infinite;
+        }
+        @keyframes ringSparkFade {
+            0%, 100% { opacity: 0; transform: scale(0.2); }
+            50% { opacity: 1; transform: scale(1.8); }
+        }
+
+        /* 粒子环 */
+        .particle-ring {
+            position: absolute;
+            width: 390px; height: 390px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .spark {
+            position: absolute;
+            width: 3px; height: 3px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 8px 2px hsl(var(--theme-h), 80%, 55%);
+            animation: sparkFloat var(--spark-dur) ease-in-out infinite;
+            animation-delay: var(--spark-delay);
+            opacity: 0;
+        }
+        @keyframes sparkFloat {
+            0%,100% { opacity: 0; transform: translate(0,0) scale(0.4); }
+            15% { opacity: 1; }
+            85% { opacity: 0.5; }
+            50% { transform: translate(var(--sdx), var(--sdy)) scale(1.6); opacity: 0.9; }
+        }
+
+        /* 行星轨道系统 */
         .orbit-system {
             position: absolute;
-            width: 370px;
-            height: 370px;
+            width: 400px; height: 400px;
             pointer-events: none;
             z-index: 0;
         }
-        .orbit-ring {
+        .orbit-ring-el {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             border-radius: 50%;
             border: 1px dashed rgba(255,255,255,0.04);
             transform: translate(-50%, -50%);
         }
         .orbit-track {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 1px;
-            height: 1px;
+            top: 50%; left: 50%;
+            width: 1px; height: 1px;
             animation: orbitSpin var(--orbit-dur) linear infinite;
         }
         @keyframes orbitSpin { to { transform: rotate(360deg); } }
@@ -99,7 +168,7 @@
             position: absolute;
             border-radius: 50%;
             transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px var(--glow), 0 0 25px var(--glow);
+            box-shadow: 0 0 12px var(--glow), 0 0 30px var(--glow);
         }
         .planet-ring {
             position: absolute;
@@ -109,179 +178,349 @@
             opacity: 0.5;
         }
 
-        /* ===== 模拟表盘 ===== */
+        /* ===== 表盘容器 ===== */
         .clock-face-wrapper {
             position: relative;
-            width: 370px;
-            height: 370px;
+            width: 400px; height: 400px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
+        /* ===== 3D 玻璃表盘 ===== */
         .clock-face {
             position: relative;
-            width: 320px;
-            height: 320px;
+            width: 320px; height: 320px;
             border-radius: 50%;
-            background: radial-gradient(circle at 50% 45%, #1e293b, #0f172a);
-            border: 2px solid rgba(255,255,255,0.08);
+            background:
+                radial-gradient(ellipse at 50% 35%, rgba(28,36,60,0.92), rgba(10,15,30,0.96)),
+                radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.45) 100%);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.1);
             box-shadow:
-                0 0 80px rgba(59,130,246,0.12),
-                0 0 40px rgba(244,63,94,0.06),
-                0 25px 60px rgba(0,0,0,0.6),
-                inset 0 2px 20px rgba(255,255,255,0.03),
-                inset 0 -2px 20px rgba(0,0,0,0.4);
+                0 0 100px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.08),
+                0 0 50px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.04),
+                0 30px 80px rgba(0,0,0,0.7),
+                inset 0 2px 30px rgba(255,255,255,0.03),
+                inset 0 -4px 30px rgba(0,0,0,0.5),
+                inset 0 0 80px rgba(0,0,0,0.3);
             z-index: 2;
+            overflow: visible;
+            transition: box-shadow 0.6s ease;
+            animation: clockFaceGlow 4s ease-in-out infinite;
+        }
+        @keyframes clockFaceGlow {
+            0%, 100% {
+                box-shadow:
+                    0 0 80px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.06),
+                    0 0 40px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.03),
+                    0 30px 80px rgba(0,0,0,0.7),
+                    inset 0 2px 30px rgba(255,255,255,0.03),
+                    inset 0 -4px 30px rgba(0,0,0,0.5),
+                    inset 0 0 80px rgba(0,0,0,0.3);
+            }
+            50% {
+                box-shadow:
+                    0 0 140px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.14),
+                    0 0 70px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.08),
+                    0 30px 80px rgba(0,0,0,0.7),
+                    inset 0 2px 30px rgba(255,255,255,0.05),
+                    inset 0 -4px 30px rgba(0,0,0,0.5),
+                    inset 0 0 80px rgba(0,0,0,0.3);
+            }
         }
         .clock-face::before {
             content: '';
             position: absolute;
-            inset: 12px;
+            inset: 8px;
             border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.05);
             pointer-events: none;
+        }
+        .clock-face::after {
+            content: '';
+            position: absolute;
+            top: 15%; left: 20%;
+            width: 45%; height: 30%;
+            background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.06) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: rotate(-15deg);
+        }
+
+        /* 内圈装饰 */
+        .inner-decor {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .inner-ring-1 {
+            width: 290px; height: 290px;
+            border: 1px solid rgba(255,255,255,0.04);
+            animation: innerRingPulse 3s ease-in-out infinite;
+        }
+        .inner-ring-2 {
+            width: 200px; height: 200px;
+            border: 1px solid rgba(255,255,255,0.03);
+            animation: innerRingPulse 3s ease-in-out 1.5s infinite;
+        }
+        @keyframes innerRingPulse {
+            0%, 100% { border-color: rgba(255,255,255,0.03); }
+            50% { border-color: rgba(255,255,255,0.08); }
+        }
+
+        /* 极光覆层 */
+        .aurora-overlay {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.35;
+            background: radial-gradient(ellipse at 30% 20%, hsl(var(--theme-h), 60%, 50%) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, hsl(calc(var(--theme-h) + 140), 50%, 45%) 0%, transparent 50%),
+                        radial-gradient(ellipse at 50% 50%, hsl(calc(var(--theme-h) + 70), 40%, 40%) 0%, transparent 40%);
+            animation: auroraShift 8s ease-in-out infinite;
+            mix-blend-mode: screen;
+        }
+        @keyframes auroraShift {
+            0%, 100% { transform: rotate(0deg) scale(1); opacity: 0.3; }
+            25% { transform: rotate(3deg) scale(1.05); opacity: 0.4; }
+            50% { transform: rotate(-2deg) scale(0.98); opacity: 0.25; }
+            75% { transform: rotate(4deg) scale(1.03); opacity: 0.35; }
+        }
+
+        /* 光扫效果 */
+        .sweep-light {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 6;
+            overflow: hidden;
+        }
+        .sweep-light::after {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: -30%;
+            width: 60%;
+            height: 140%;
+            background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 55%, transparent 60%);
+            animation: sweepSpin 5s linear infinite;
+        }
+        @keyframes sweepSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 脉冲波纹 */
+        .pulse-ripple {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.08);
+            pointer-events: none;
+            z-index: 1;
+            animation: pulseExpand 3s ease-out infinite;
+        }
+        .pulse-ripple:nth-child(1) { animation-delay: 0s; }
+        .pulse-ripple:nth-child(2) { animation-delay: 1s; }
+        .pulse-ripple:nth-child(3) { animation-delay: 2s; }
+        @keyframes pulseExpand {
+            0% { width: 30px; height: 30px; opacity: 0.6; border-width: 2px; }
+            100% { width: 310px; height: 310px; opacity: 0; border-width: 0.3px; }
+        }
+
+        /* 表盘浮动粒子 */
+        .clock-particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 2;
+            background: #fff;
+            box-shadow: 0 0 6px 2px hsl(var(--theme-h), 70%, 60%);
+            animation: clockParticleFloat var(--cp-dur) ease-in-out infinite;
+            animation-delay: var(--cp-delay);
+        }
+        @keyframes clockParticleFloat {
+            0%, 100% { opacity: 0; transform: translate(0, 0) scale(0.3); }
+            20% { opacity: 0.8; }
+            80% { opacity: 0.3; }
+            50% { transform: translate(var(--cp-dx), var(--cp-dy)) scale(1.4); opacity: 0.9; }
+        }
+
+        /* 点击波纹 */
+        .click-ripple {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.5);
+            pointer-events: none;
+            z-index: 15;
+            animation: clickRippleOut 0.8s ease-out forwards;
+        }
+        @keyframes clickRippleOut {
+            0% { width: 10px; height: 10px; opacity: 1; border-width: 2px; }
+            100% { width: 350px; height: 350px; opacity: 0; border-width: 0.2px; }
         }
 
         /* 刻度 */
         .mark {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform-origin: 0 0;
         }
         .mark.hour-mark {
-            width: 4px;
-            height: 16px;
-            background: linear-gradient(to bottom, #d1d5db, #9ca3af);
-            border-radius: 2px;
-            box-shadow: 0 0 6px rgba(209,213,219,0.3);
+            width: 5px; height: 20px;
+            background: linear-gradient(to bottom, #e5e7eb, #9ca3af);
+            border-radius: 3px;
+            box-shadow: 0 0 8px rgba(229,231,235,0.4);
+            transition: all 0.4s;
         }
         .mark.hour-mark.active {
             background: linear-gradient(to bottom, #fbbf24, #f59e0b);
-            box-shadow: 0 0 14px rgba(251,191,36,0.8);
-            width: 5px;
-            height: 18px;
+            box-shadow: 0 0 18px rgba(251,191,36,0.9), 0 0 35px rgba(251,191,36,0.3);
+            width: 6px; height: 24px;
         }
         .mark.min-mark {
-            width: 1.5px;
-            height: 8px;
-            background: rgba(107,114,128,0.5);
+            width: 2px; height: 10px;
+            background: rgba(107,114,128,0.45);
             border-radius: 1px;
         }
-
+        .mark.quarter-mark {
+            width: 3px; height: 14px;
+            background: rgba(148,163,184,0.55);
+            border-radius: 2px;
+        }
         .number {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             color: #d1d5db;
-            font-size: 21px;
-            font-weight: 600;
-            text-shadow: 0 0 10px rgba(209,213,219,0.3);
+            font-size: 22px; font-weight: 500;
+            text-shadow: 0 0 12px rgba(209,213,219,0.35);
             pointer-events: none;
         }
 
-        /* 指针 */
+        /* 日期窗 */
+        .date-window {
+            position: absolute;
+            top: 56%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 4px 16px;
+            font-size: 12px; color: #94a3b8;
+            letter-spacing: 2px;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* ===== 指针 ===== */
         .hand {
             position: absolute;
-            bottom: 50%;
-            left: 50%;
+            bottom: 50%; left: 50%;
             transform-origin: 50% 100%;
             border-radius: 4px;
+            transition: all 0.6s;
         }
         .hand.hour {
-            width: 6px;
-            height: 66px;
-            margin-left: -3px;
-            background: linear-gradient(to top, #d1d5db, #f3f4f6);
-            border-radius: 3px 3px 2px 2px;
+            width: 7px; height: 62px;
+            margin-left: -3.5px;
+            background: linear-gradient(to top, #cbd5e1, #f1f5f9);
+            border-radius: 4px 4px 2px 2px;
             z-index: 3;
-            box-shadow: 0 0 8px rgba(209,213,219,0.2);
+            box-shadow: 0 0 10px rgba(203,213,225,0.3), 0 2px 6px rgba(0,0,0,0.4);
         }
         .hand.minute {
-            width: 4px;
-            height: 96px;
-            margin-left: -2px;
-            background: linear-gradient(to top, #60a5fa, #93c5fd);
-            border-radius: 2px;
+            width: 5px; height: 92px;
+            margin-left: -2.5px;
+            background: linear-gradient(to top, hsl(var(--theme-h), 70%, 55%), #bfdbfe);
+            border-radius: 3px 3px 2px 2px;
             z-index: 4;
-            box-shadow: 0 0 12px rgba(96,165,250,0.4);
+            box-shadow: 0 0 16px hsl(var(--theme-h), 80%, 50%), 0 2px 8px rgba(0,0,0,0.3);
         }
         .hand.second {
-            width: 2px;
-            height: 118px;
+            width: 2px; height: 114px;
             margin-left: -1px;
-            background: linear-gradient(to top, #f43f5e, #fb7185);
+            background: linear-gradient(to top, #f43f5e, #fda4af);
             border-radius: 1px;
             z-index: 5;
-            box-shadow: 0 0 10px rgba(244,63,94,0.5);
+            box-shadow: 0 0 12px rgba(244,63,94,0.55);
         }
         .hand.second::after {
             content: '';
             position: absolute;
-            bottom: -22px;
-            left: 50%;
+            bottom: -24px; left: 50%;
             transform: translateX(-50%);
-            width: 6px;
-            height: 6px;
-            background: var(--second);
+            width: 8px; height: 8px;
+            background: #f43f5e;
             border-radius: 50%;
-            box-shadow: 0 0 8px rgba(244,63,94,0.7);
+            box-shadow: 0 0 14px rgba(244,63,94,0.8);
         }
 
+        /* 中心点 */
         .center-dot {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 14px;
-            height: 14px;
-            background: radial-gradient(circle at 40% 40%, #fb7185, #e11d48);
+            width: 16px; height: 16px;
+            background: radial-gradient(circle at 40% 35%, #fda4af, #e11d48);
             border-radius: 50%;
             z-index: 10;
-            box-shadow: 0 0 16px rgba(244,63,94,0.6), 0 0 30px rgba(244,63,94,0.2);
-            animation: dotPulse 2s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(244,63,94,0.7), 0 0 40px rgba(244,63,94,0.25);
+            cursor: pointer;
+            transition: all 0.3s;
         }
-        @keyframes dotPulse {
-            0%,100% { box-shadow: 0 0 16px rgba(244,63,94,0.6), 0 0 30px rgba(244,63,94,0.2); }
-            50% { box-shadow: 0 0 24px rgba(244,63,94,0.8), 0 0 45px rgba(244,63,94,0.35); }
+        .center-dot:hover {
+            transform: translate(-50%, -50%) scale(1.3);
+            box-shadow: 0 0 30px rgba(244,63,94,0.9), 0 0 55px rgba(244,63,94,0.4);
         }
 
         /* 秒针拖尾 */
         .trail {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 2px;
-            margin-left: -1px;
+            top: 50%; left: 50%;
+            width: 2px; margin-left: -1px;
             transform-origin: 50% 100%;
             border-radius: 1px;
             pointer-events: none;
             will-change: transform;
         }
 
-        /* ===== 数字时钟 ===== */
+        /* ===== 数字面板 ===== */
+        .digital-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
         .digital-clock {
             display: flex;
             align-items: center;
-            gap: 14px;
-            background: rgba(17,24,39,0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 24px;
-            padding: 22px 44px;
-            box-shadow: 0 15px 50px rgba(0,0,0,0.5), 0 0 40px rgba(59,130,246,0.06);
+            gap: 10px;
+            background: rgba(17,24,39,0.65);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 28px;
+            padding: 16px 34px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.5);
+            transition: all 0.4s;
         }
         .time-block {
-            font-size: 76px;
-            font-weight: 200;
+            font-size: 64px; font-weight: 200;
             color: #93c5fd;
             font-variant-numeric: tabular-nums;
             font-family: 'Cascadia Code', 'Consolas', 'Fira Code', monospace;
-            min-width: 106px;
-            text-align: center;
+            min-width: 90px; text-align: center;
             letter-spacing: 6px;
             text-shadow: 0 0 30px rgba(147,197,253,0.3);
         }
@@ -290,22 +529,217 @@
             text-shadow: 0 0 30px rgba(253,164,175,0.3);
         }
         .colon {
-            font-size: 56px;
-            color: rgba(229,231,235,0.5);
+            font-size: 44px;
+            color: rgba(229,231,235,0.45);
             font-weight: 200;
             animation: colonBlink 1s step-end infinite;
             line-height: 1;
         }
-        @keyframes colonBlink {
-            0%,100% { opacity: 1; }
-            50% { opacity: 0.2; }
-        }
+        @keyframes colonBlink { 0%,100%{opacity:1} 50%{opacity:0.15} }
         .date-display {
             color: #6b7280;
-            font-size: 17px;
-            text-align: center;
-            letter-spacing: 3px;
+            font-size: 15px; letter-spacing: 3px;
             font-weight: 400;
+        }
+
+        /* ===== 控制按钮 ===== */
+        .control-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .ctrl-btn {
+            padding: 10px 18px;
+            border-radius: 25px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(17,24,39,0.55);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: #94a3b8;
+            font-size: 13px; letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.35s;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .ctrl-btn:hover {
+            background: rgba(30,40,60,0.7);
+            border-color: rgba(255,255,255,0.25);
+            color: #cbd5e1;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+        .ctrl-btn.active {
+            background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.2);
+            border-color: hsl(var(--theme-h), 70%, 60%);
+            color: hsl(var(--theme-h), 70%, 60%);
+            box-shadow: 0 0 20px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.2);
+        }
+        .ctrl-btn.cta {
+            background: linear-gradient(135deg, hsl(var(--theme-h), 80%, 50%), hsl(calc(var(--theme-h) + 140), 60%, 55%));
+            color: #fff;
+            border: none;
+            font-weight: 600;
+        }
+        .ctrl-btn.cta:hover {
+            box-shadow: 0 8px 30px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.4);
+        }
+
+        /* 主题色点 */
+        .theme-dots {
+            display: flex;
+            gap: 10px;
+        }
+        .theme-dot {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .theme-dot:hover { transform: scale(1.25); }
+        .theme-dot.active {
+            border-color: #fff;
+            box-shadow: 0 0 16px currentColor;
+        }
+
+        /* 提示 */
+        .hint-text {
+            font-size: 11px;
+            color: #4b5563;
+            letter-spacing: 2px;
+        }
+
+        /* 倒计时闪烁 */
+        @keyframes timerFlash {
+            0%,100% { box-shadow: 0 15px 50px rgba(0,0,0,0.5); }
+            50% { box-shadow: 0 15px 50px rgba(0,0,0,0.5), 0 0 70px rgba(244,63,94,0.5); }
+        }
+
+        /* ===== 倒计时编辑器 ===== */
+        .timer-editor {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            background: rgba(17,24,39,0.55);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 16px 28px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            animation: editorSlideIn 0.35s ease;
+        }
+        @keyframes editorSlideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .timer-editor.visible {
+            display: flex;
+        }
+        .timer-editor .editor-row {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .timer-editor .editor-unit {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .timer-editor .editor-label {
+            font-size: 10px;
+            color: #6b7280;
+            letter-spacing: 2px;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+        .timer-editor .editor-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .timer-editor .adj-btn {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.04);
+            color: #cbd5e1;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-family: inherit;
+            line-height: 1;
+        }
+        .timer-editor .adj-btn:hover {
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(255,255,255,0.3);
+            color: #fff;
+            transform: scale(1.1);
+        }
+        .timer-editor .adj-btn:active {
+            transform: scale(0.9);
+            background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.3);
+        }
+        .timer-editor .unit-val {
+            font-size: 28px;
+            font-weight: 300;
+            color: #e2e8f0;
+            font-variant-numeric: tabular-nums;
+            font-family: 'Cascadia Code', 'Consolas', 'Fira Code', monospace;
+            min-width: 44px;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        .timer-editor .unit-sep {
+            font-size: 22px;
+            color: #4b5563;
+            font-weight: 200;
+        }
+        .timer-editor .preset-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .timer-editor .preset-chip {
+            padding: 5px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: transparent;
+            color: #94a3b8;
+            font-size: 11px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.25s;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .timer-editor .preset-chip:hover {
+            background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.15);
+            border-color: hsl(var(--theme-h), 70%, 60%);
+            color: #cbd5e1;
+        }
+        .timer-editor .preset-chip.active-preset {
+            background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.25);
+            border-color: hsl(var(--theme-h), 70%, 60%);
+            color: hsl(var(--theme-h), 70%, 60%);
+            box-shadow: 0 0 10px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.2);
+        }
+
+        @media (max-width: 500px) {
+            .clock-face-wrapper { width: 320px; height: 320px; }
+            .clock-face { width: 260px; height: 260px; }
+            .glow-ring { width: 320px; height: 320px; }
+            .orbit-system { width: 320px; height: 320px; }
+            .time-block { font-size: 40px; min-width: 60px; letter-spacing: 3px; }
+            .digital-clock { padding: 12px 18px; border-radius: 20px; }
+            .ctrl-btn { padding: 7px 12px; font-size: 11px; letter-spacing: 1px; }
         }
     </style>
 </head>
@@ -313,166 +747,426 @@
     <canvas id="starCanvas"></canvas>
 
     <div class="container">
-        <span class="title">✦ Analog &amp; Digital Clock ✦</span>
+        <div class="title-area">
+            <span class="title">✦ Chronos ✦</span>
+            <span class="mode-badge" id="modeBadge">时钟</span>
+        </div>
 
         <div class="clock-face-wrapper" id="clockWrapper">
-            <div class="glow-ring"></div>
+            <div class="glow-ring-outer" id="glowRingOuter"></div>
+            <div class="glow-ring" id="glowRing"></div>
+            <div class="particle-ring" id="particleRing"></div>
             <div class="orbit-system" id="orbitSystem"></div>
             <div class="clock-face" id="clockFace">
-                <div class="center-dot"></div>
+                <div class="aurora-overlay" id="auroraOverlay"></div>
+                <div class="sweep-light"></div>
+                <div class="pulse-ripple"></div>
+                <div class="pulse-ripple"></div>
+                <div class="pulse-ripple"></div>
+                <div class="center-dot" id="centerDot" title="点击切换模式"></div>
             </div>
         </div>
 
-        <div class="digital-clock">
-            <span class="time-block" id="hours">00</span>
-            <span class="colon">:</span>
-            <span class="time-block" id="minutes">00</span>
-            <span class="colon">:</span>
-            <span class="time-block seconds-block" id="seconds">00</span>
+        <div class="digital-panel">
+            <div class="digital-clock" id="digitalClock">
+                <span class="time-block" id="hours">00</span>
+                <span class="colon">:</span>
+                <span class="time-block" id="minutes">00</span>
+                <span class="colon" id="colon2">:</span>
+                <span class="time-block seconds-block" id="seconds">00</span>
+            </div>
+            <div class="date-display" id="dateDisplay"></div>
         </div>
-        <div class="date-display" id="dateDisplay"></div>
+
+        <!-- 倒计时编辑器 -->
+        <div class="timer-editor" id="timerEditor">
+            <div class="editor-row">
+                <div class="editor-col">
+                    <span class="editor-label">小时</span>
+                    <div class="editor-unit">
+                        <button class="adj-btn" data-unit="h" data-dir="-1">−</button>
+                        <span class="unit-val" id="timerH">00</span>
+                        <button class="adj-btn" data-unit="h" data-dir="1">+</button>
+                    </div>
+                </div>
+                <span class="unit-sep">:</span>
+                <div class="editor-col">
+                    <span class="editor-label">分钟</span>
+                    <div class="editor-unit">
+                        <button class="adj-btn" data-unit="m" data-dir="-1">−</button>
+                        <span class="unit-val" id="timerM">05</span>
+                        <button class="adj-btn" data-unit="m" data-dir="1">+</button>
+                    </div>
+                </div>
+                <span class="unit-sep">:</span>
+                <div class="editor-col">
+                    <span class="editor-label">秒钟</span>
+                    <div class="editor-unit">
+                        <button class="adj-btn" data-unit="s" data-dir="-1">−</button>
+                        <span class="unit-val" id="timerS">00</span>
+                        <button class="adj-btn" data-unit="s" data-dir="1">+</button>
+                    </div>
+                </div>
+            </div>
+            <div class="preset-row" id="presetRow">
+                <button class="preset-chip" data-preset="60">1 分钟</button>
+                <button class="preset-chip" data-preset="180">3 分钟</button>
+                <button class="preset-chip active-preset" data-preset="300">5 分钟</button>
+                <button class="preset-chip" data-preset="600">10 分钟</button>
+                <button class="preset-chip" data-preset="900">15 分钟</button>
+                <button class="preset-chip" data-preset="1800">30 分钟</button>
+                <button class="preset-chip" data-preset="3600">60 分钟</button>
+            </div>
+        </div>
+
+        <div class="control-bar" id="controlBar">
+            <button class="ctrl-btn active" data-mode="clock">🕐 时钟</button>
+            <button class="ctrl-btn" data-mode="stopwatch">⏱ 秒表</button>
+            <button class="ctrl-btn" data-mode="timer">⏳ 倒计时</button>
+            <button class="ctrl-btn cta" id="btnAction">▶ 开始</button>
+            <button class="ctrl-btn" id="btnReset">↺ 重置</button>
+        </div>
+
+        <div class="theme-dots" id="themeDots">
+            <span class="theme-dot active" data-theme="ocean" style="background:#3b82f6;color:#3b82f6;" title="海洋蓝"></span>
+            <span class="theme-dot" data-theme="sunset" style="background:#f97316;color:#f97316;" title="日落橙"></span>
+            <span class="theme-dot" data-theme="aurora" style="background:#10b981;color:#10b981;" title="极光绿"></span>
+            <span class="theme-dot" data-theme="purple" style="background:#a855f7;color:#a855f7;" title="星云紫"></span>
+            <span class="theme-dot" data-theme="rose" style="background:#f43f5e;color:#f43f5e;" title="玫瑰红"></span>
+        </div>
+
+        <span class="hint-text">表盘中心切换模式 · 空格 开始/暂停 · R 重置 · Shift+点击 快速调时</span>
     </div>
 
     <script>
+        // ==================== 主题系统 ====================
+        const themes = {
+            ocean:  { h: 210, r: 59,  g: 130, b: 246 },
+            sunset: { h: 25,  r: 249, g: 115, b: 22  },
+            aurora: { h: 160, r: 16,  g: 185, b: 129 },
+            purple: { h: 270, r: 168, g: 85,  b: 247 },
+            rose:   { h: 350, r: 244, g: 63,  b: 94  },
+        };
+        let currentTheme = 'ocean';
+
+        function applyTheme(name) {
+            currentTheme = name;
+            const t = themes[name];
+            const root = document.documentElement;
+            root.style.setProperty('--theme-h', t.h);
+            root.style.setProperty('--accent-r', t.r);
+            root.style.setProperty('--accent-g', t.g);
+            root.style.setProperty('--accent-b', t.b);
+            document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d.dataset.theme === name));
+        }
+
+        document.getElementById('themeDots').addEventListener('click', (e) => {
+            const dot = e.target.closest('.theme-dot');
+            if (!dot) return;
+            applyTheme(dot.dataset.theme);
+        });
+
         // ==================== Canvas 星空背景 ====================
         (function() {
             const canvas = document.getElementById('starCanvas');
             const ctx = canvas.getContext('2d');
+            let cx, cy, maxR;
             const stars = [];
-            const STAR_COUNT = 350;
+            const nebulaBlobs = [];
             let shootingStars = [];
-            const nebulae = [];
 
             function resize() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
+                cx = canvas.width / 2;
+                cy = canvas.height / 2;
+                maxR = Math.sqrt(cx * cx + cy * cy) + 50;
             }
             window.addEventListener('resize', resize);
             resize();
 
-            // 恒星数据
-            for (let i = 0; i < STAR_COUNT; i++) {
-                stars.push({
-                    x: Math.random() * 2000,
-                    y: Math.random() * 2000,
-                    r: Math.random() * 2.2 + 0.4,
-                    speed: Math.random() * 0.02 + 0.005,
-                    offset: Math.random() * Math.PI * 2,
-                    baseAlpha: Math.random() * 0.7 + 0.3,
-                    color: (() => {
-                        const r = Math.random();
-                        if (r < 0.08) return '#a78bfa';
-                        if (r < 0.16) return '#fbbf24';
-                        if (r < 0.30) return '#60a5fa';
-                        return '#ffffff';
-                    })()
-                });
+            const starTypes = [
+                { color: '#9db4ff', weight: 0.001 },
+                { color: '#aabfff', weight: 0.004 },
+                { color: '#cad7ff', weight: 0.015 },
+                { color: '#f8f7ff', weight: 0.04 },
+                { color: '#fff4e8', weight: 0.08 },
+                { color: '#ffddb4', weight: 0.15 },
+                { color: '#ffbd7a', weight: 0.71 },
+            ];
+            const totalWeight = starTypes.reduce((s, t) => s + t.weight, 0);
+
+            function randomStarColor() {
+                let r = Math.random() * totalWeight;
+                for (const t of starTypes) {
+                    r -= t.weight;
+                    if (r <= 0) return t.color;
+                }
+                return '#ffbd7a';
             }
 
-            // 星云
-            for (let i = 0; i < 4; i++) {
-                nebulae.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    r: Math.random() * 250 + 100,
-                    color: ['rgba(167,139,250,0.025)','rgba(59,130,246,0.025)',
-                            'rgba(244,63,94,0.015)','rgba(251,191,36,0.015)'][i],
-                    vx: (Math.random() - 0.5) * 0.08,
-                    vy: (Math.random() - 0.5) * 0.08
+            const layers = [
+                { count: 120, distMin: 0.05, distMax: 0.35, sizeMin: 0.3, sizeMax: 1.0, speed: 0.015, alphaMin: 0.3, alphaMax: 0.6, twinkle: 0.008 },
+                { count: 220, distMin: 0.20, distMax: 0.55, sizeMin: 0.3, sizeMax: 1.6, speed: 0.025, alphaMin: 0.4, alphaMax: 0.8, twinkle: 0.012 },
+                { count: 260, distMin: 0.40, distMax: 0.75, sizeMin: 0.4, sizeMax: 2.0, speed: 0.040, alphaMin: 0.5, alphaMax: 0.95, twinkle: 0.018 },
+                { count: 140, distMin: 0.50, distMax: 0.92, sizeMin: 0.6, sizeMax: 2.8, speed: 0.060, alphaMin: 0.5, alphaMax: 1.0, twinkle: 0.025 },
+                { count: 60,  distMin: 0.60, distMax: 1.0,  sizeMin: 1.0, sizeMax: 3.5, speed: 0.085, alphaMin: 0.55,alphaMax: 1.0, twinkle: 0.035 },
+            ];
+
+            layers.forEach(layer => {
+                for (let i = 0; i < layer.count; i++) {
+                    stars.push({
+                        angle: Math.random() * Math.PI * 2,
+                        dist: layer.distMin + Math.random() * (layer.distMax - layer.distMin),
+                        r: layer.sizeMin + Math.random() * (layer.sizeMax - layer.sizeMin),
+                        rotSpeed: layer.speed,
+                        baseAlpha: layer.alphaMin + Math.random() * (layer.alphaMax - layer.alphaMin),
+                        twinkleSpeed: layer.twinkle + Math.random() * 0.01,
+                        twinkleOffset: Math.random() * Math.PI * 2,
+                        color: randomStarColor(),
+                    });
+                }
+            });
+
+            for (let i = 0; i < 5; i++) {
+                nebulaBlobs.push({
+                    angle: Math.random() * Math.PI * 2,
+                    dist: 0.25 + Math.random() * 0.55,
+                    r: 60 + Math.random() * 160,
+                    rotSpeed: 0.008 + Math.random() * 0.025,
+                    hue: [220, 280, 30, 340, 200][i],
+                    alpha: 0.012 + Math.random() * 0.018,
                 });
             }
 
             function spawnMeteor() {
                 if (Math.random() < 0.015 && shootingStars.length < 3) {
                     shootingStars.push({
-                        x: Math.random() * canvas.width * 0.9,
-                        y: Math.random() * canvas.height * 0.4,
-                        vx: Math.random() * 5 + 3,
-                        vy: Math.random() * 2.5 + 1,
-                        life: 1,
-                        decay: Math.random() * 0.018 + 0.012,
-                        len: Math.random() * 100 + 50
+                        angle: Math.random() * Math.PI * 2,
+                        dist: 0.7 + Math.random() * 0.4,
+                        speed: 0.003 + Math.random() * 0.008,
+                        life: 1.0,
+                        decay: 0.005 + Math.random() * 0.018,
+                        angleDrift: (Math.random() - 0.5) * 0.005,
+                        headSize: 1.5 + Math.random() * 2,
                     });
                 }
             }
 
+            function starXY(star) {
+                const r = star.dist * maxR;
+                return {
+                    x: cx + Math.cos(star.angle) * r,
+                    y: cy + Math.sin(star.angle) * r,
+                };
+            }
+
             function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const t = Date.now() * 0.001;
 
-                // 画星云
-                for (const n of nebulae) {
-                    const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
-                    g.addColorStop(0, n.color);
-                    g.addColorStop(1, 'transparent');
-                    ctx.fillStyle = g;
+                const bgGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+                bgGrad.addColorStop(0, '#0a0a20');
+                bgGrad.addColorStop(0.4, '#060615');
+                bgGrad.addColorStop(1, '#020210');
+                ctx.fillStyle = bgGrad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                for (const nb of nebulaBlobs) {
+                    nb.angle += nb.rotSpeed * 0.016;
+                    const pos = starXY(nb);
+                    const grad = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, nb.r);
+                    grad.addColorStop(0, `hsla(${nb.hue}, 60%, 50%, ${nb.alpha})`);
+                    grad.addColorStop(0.5, `hsla(${nb.hue}, 50%, 30%, ${nb.alpha * 0.5})`);
+                    grad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = grad;
                     ctx.beginPath();
-                    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+                    ctx.arc(pos.x, pos.y, nb.r, 0, Math.PI * 2);
                     ctx.fill();
-                    n.x += n.vx;
-                    n.y += n.vy;
-                    if (n.x < -n.r) n.x = canvas.width + n.r;
-                    if (n.x > canvas.width + n.r) n.x = -n.r;
-                    if (n.y < -n.r) n.y = canvas.height + n.r;
-                    if (n.y > canvas.height + n.r) n.y = -n.r;
                 }
 
-                // 闪烁恒星
-                const t = Date.now();
-                for (const s of stars) {
-                    const a = s.baseAlpha * (0.5 + 0.5 * Math.sin(t * s.speed + s.offset));
-                    ctx.fillStyle = s.color;
-                    ctx.globalAlpha = a;
+                // 收集亮星位置用于星座连线
+                const brightStars = [];
+                for (const star of stars) {
+                    star.angle += star.rotSpeed * 0.016;
+                    const pos = starXY(star);
+                    if (pos.x < -20 || pos.x > canvas.width + 20 || pos.y < -20 || pos.y > canvas.height + 20) continue;
+                    const twinkle = 0.55 + 0.45 * Math.sin(t * star.twinkleSpeed * 60 + star.twinkleOffset);
+                    const alpha = star.baseAlpha * twinkle;
+
+                    if (star.r > 1.8 && alpha > 0.65) {
+                        brightStars.push({ x: pos.x, y: pos.y, r: star.r, alpha });
+                    }
+
+                    if (star.r > 1.8 && alpha > 0.7) {
+                        const glow = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, star.r * 3);
+                        glow.addColorStop(0, star.color);
+                        glow.addColorStop(1, 'transparent');
+                        ctx.fillStyle = glow;
+                        ctx.globalAlpha = alpha * 0.25;
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, star.r * 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.fillStyle = star.color;
+                    ctx.globalAlpha = alpha;
                     ctx.beginPath();
-                    ctx.arc(s.x % canvas.width, s.y % canvas.height, s.r, 0, Math.PI * 2);
+                    ctx.arc(pos.x, pos.y, star.r, 0, Math.PI * 2);
                     ctx.fill();
                 }
                 ctx.globalAlpha = 1;
 
-                // 流星
+                // 星座连线
+                for (let i = 0; i < brightStars.length; i++) {
+                    for (let j = i + 1; j < brightStars.length; j++) {
+                        const dx = brightStars[i].x - brightStars[j].x;
+                        const dy = brightStars[i].y - brightStars[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const maxDist = 180;
+                        if (dist < maxDist) {
+                            const lineAlpha = (1 - dist / maxDist) * 0.12 * Math.min(brightStars[i].alpha, brightStars[j].alpha);
+                            ctx.strokeStyle = `rgba(180,200,255,${lineAlpha})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.beginPath();
+                            ctx.moveTo(brightStars[i].x, brightStars[i].y);
+                            ctx.lineTo(brightStars[j].x, brightStars[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+
                 spawnMeteor();
                 for (let i = shootingStars.length - 1; i >= 0; i--) {
                     const m = shootingStars[i];
-                    const grad = ctx.createLinearGradient(m.x, m.y,
-                        m.x - m.vx * m.len * 0.12, m.y - m.vy * m.len * 0.12);
+                    m.angle += m.angleDrift;
+                    m.dist -= m.speed;
+                    if (m.dist < 0.08 || m.life <= 0) { shootingStars.splice(i, 1); continue; }
+                    const pos = starXY(m);
+                    const tp = starXY({ angle: m.angle + 0.12, dist: m.dist + 0.08 });
+                    const grad = ctx.createLinearGradient(pos.x, pos.y, tp.x, tp.y);
                     grad.addColorStop(0, `rgba(255,255,255,${m.life})`);
+                    grad.addColorStop(0.15, `rgba(200,220,255,${m.life * 0.8})`);
+                    grad.addColorStop(0.5, `rgba(150,180,255,${m.life * 0.35})`);
                     grad.addColorStop(1, 'rgba(255,255,255,0)');
                     ctx.strokeStyle = grad;
-                    ctx.lineWidth = 1.5;
+                    ctx.lineWidth = m.headSize;
+                    ctx.lineCap = 'round';
                     ctx.beginPath();
-                    ctx.moveTo(m.x, m.y);
-                    ctx.lineTo(m.x - m.vx * m.len * 0.12, m.y - m.vy * m.len * 0.12);
+                    ctx.moveTo(pos.x, pos.y);
+                    ctx.lineTo(tp.x, tp.y);
                     ctx.stroke();
-                    m.x += m.vx;
-                    m.y += m.vy;
-                    m.life -= m.decay;
-                    if (m.life <= 0) shootingStars.splice(i, 1);
-                }
 
+                    // 流星头部光晕
+                    const headGlow = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, m.headSize * 4);
+                    headGlow.addColorStop(0, `rgba(255,255,255,${m.life * 0.7})`);
+                    headGlow.addColorStop(1, 'rgba(255,255,255,0)');
+                    ctx.fillStyle = headGlow;
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, m.headSize * 4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    m.life -= m.decay;
+                }
                 requestAnimationFrame(draw);
             }
             draw();
         })();
 
-        // ==================== 行星环绕系统 ====================
+        // ==================== 粒子环 ====================
+        (function() {
+            const ring = document.getElementById('particleRing');
+            for (let i = 0; i < 36; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'spark';
+                const angle = (i / 36) * Math.PI * 2;
+                const r = 195;
+                spark.style.left = `calc(50% + ${Math.cos(angle) * r}px)`;
+                spark.style.top = `calc(50% + ${Math.sin(angle) * r}px)`;
+                spark.style.setProperty('--spark-dur', `${2.5 + Math.random() * 4}s`);
+                spark.style.setProperty('--spark-delay', `${Math.random() * 5}s`);
+                spark.style.setProperty('--sdx', `${(Math.random() - 0.5) * 60}px`);
+                spark.style.setProperty('--sdy', `${(Math.random() - 0.5) * 60}px`);
+                ring.appendChild(spark);
+            }
+        })();
+
+        // ==================== 光环闪烁粒子 ====================
+        (function() {
+            const wrapper = document.getElementById('clockWrapper');
+            for (let i = 0; i < 12; i++) {
+                const rspark = document.createElement('div');
+                rspark.className = 'ring-spark';
+                const angle = (i / 12) * Math.PI * 2;
+                const cx = 200, cy = 200, r = 210;
+                rspark.style.left = `${cx + Math.cos(angle) * r}px`;
+                rspark.style.top = `${cy + Math.sin(angle) * r}px`;
+                rspark.style.animationDelay = `${Math.random() * 3}s`;
+                rspark.style.animationDuration = `${1.5 + Math.random() * 2}s`;
+                wrapper.appendChild(rspark);
+            }
+        })();
+
+        // ==================== 光环粒子位置更新 ====================
+        function updateRingSparks() {
+            const sparks = document.querySelectorAll('.ring-spark');
+            const t = performance.now() * 0.001;
+            const cx = 200, cy = 200, r = 210;
+            sparks.forEach((sp, i) => {
+                const baseAngle = (i / sparks.length) * Math.PI * 2 + t * 0.3;
+                const angle = baseAngle + Math.sin(t * 1.5 + i) * 0.15;
+                const wobble = r + Math.sin(t * 2 + i * 1.7) * 12;
+                sp.style.left = `${cx + Math.cos(angle) * wobble}px`;
+                sp.style.top = `${cy + Math.sin(angle) * wobble}px`;
+            });
+        }
+
+        // ==================== 表盘内浮动粒子 ====================
+        (function() {
+            const face = document.getElementById('clockFace');
+            for (let i = 0; i < 20; i++) {
+                const cp = document.createElement('div');
+                cp.className = 'clock-particle';
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 30 + Math.random() * 130;
+                cp.style.left = `calc(50% + ${Math.cos(angle) * dist}px)`;
+                cp.style.top = `calc(50% + ${Math.sin(angle) * dist}px)`;
+                cp.style.width = `${1.5 + Math.random() * 3}px`;
+                cp.style.height = cp.style.width;
+                cp.style.setProperty('--cp-dur', `${3 + Math.random() * 5}s`);
+                cp.style.setProperty('--cp-delay', `${Math.random() * 6}s`);
+                cp.style.setProperty('--cp-dx', `${(Math.random() - 0.5) * 50}px`);
+                cp.style.setProperty('--cp-dy', `${(Math.random() - 0.5) * 50}px`);
+                face.appendChild(cp);
+            }
+        })();
+
+        // ==================== 点击波纹 ====================
+        document.getElementById('clockFace').addEventListener('click', function(e) {
+            const ripple = document.createElement('div');
+            ripple.className = 'click-ripple';
+            this.appendChild(ripple);
+            ripple.addEventListener('animationend', () => ripple.remove());
+        });
+
+        // ==================== 行星环绕 ====================
         (function() {
             const orbitSystem = document.getElementById('orbitSystem');
             const planets = [
-                { orbitR: 205, size: 9,  color: '#f59e0b', glow: '#fbbf24', period: 8,  ring: false, angle: 0 },
-                { orbitR: 255, size: 6,  color: '#60a5fa', glow: '#93c5fd', period: 14, ring: false, angle: 110 },
-                { orbitR: 305, size: 15, color: '#e2c498', glow: '#fde68a', period: 22, ring: true,  angle: 230 },
-                { orbitR: 355, size: 5,  color: '#a78bfa', glow: '#c4b5fd', period: 30, ring: false, angle: 55 },
-                { orbitR: 415, size: 11, color: '#f43f5e', glow: '#fb7185', period: 40, ring: false, angle: 175 },
+                { orbitR: 220, size: 10, color: '#f59e0b', glow: '#fbbf24', period: 9,  ring: false, angle: 0 },
+                { orbitR: 275, size: 6,  color: '#60a5fa', glow: '#93c5fd', period: 15, ring: false, angle: 110 },
+                { orbitR: 330, size: 16, color: '#e2c498', glow: '#fde68a', period: 24, ring: true,  angle: 230 },
+                { orbitR: 385, size: 5,  color: '#a78bfa', glow: '#c4b5fd', period: 32, ring: false, angle: 55 },
+                { orbitR: 450, size: 12, color: '#fb7185', glow: '#fda4af', period: 44, ring: false, angle: 175 },
             ];
 
             planets.forEach((p, idx) => {
-                // 虚线轨道
-                const ring = document.createElement('div');
-                ring.className = 'orbit-ring';
-                ring.style.width = `${p.orbitR * 2}px`;
-                ring.style.height = `${p.orbitR * 2}px`;
-                orbitSystem.appendChild(ring);
+                const ringEl = document.createElement('div');
+                ringEl.className = 'orbit-ring-el';
+                ringEl.style.width = `${p.orbitR * 2}px`;
+                ringEl.style.height = `${p.orbitR * 2}px`;
+                orbitSystem.appendChild(ringEl);
 
-                // 轨道动画
                 const track = document.createElement('div');
                 track.className = 'orbit-track';
                 track.style.setProperty('--orbit-dur', `${p.period}s`);
@@ -480,7 +1174,6 @@
                 if (idx % 2 === 1) track.style.animationDirection = 'reverse';
                 orbitSystem.appendChild(track);
 
-                // 行星
                 const body = document.createElement('div');
                 body.className = 'planet-body';
                 body.style.width = `${p.size}px`;
@@ -491,7 +1184,6 @@
                 body.style.top = '0px';
                 track.appendChild(body);
 
-                // 土星环
                 if (p.ring) {
                     const pr = document.createElement('div');
                     pr.className = 'planet-ring';
@@ -505,12 +1197,18 @@
             });
         })();
 
-        // ==================== 时钟逻辑 ====================
+        // ==================== 构建表盘 ====================
         const clockFace = document.getElementById('clockFace');
+
+        ['inner-ring-1', 'inner-ring-2'].forEach(cls => {
+            const d = document.createElement('div');
+            d.className = `inner-decor ${cls}`;
+            clockFace.appendChild(d);
+        });
+
         const hourHand = document.createElement('div');
         const minuteHand = document.createElement('div');
         const secondHand = document.createElement('div');
-
         hourHand.className = 'hand hour';
         minuteHand.className = 'hand minute';
         secondHand.className = 'hand second';
@@ -519,37 +1217,40 @@
         clockFace.appendChild(secondHand);
 
         const trailEls = [];
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 8; i++) {
             const t = document.createElement('div');
             t.className = 'trail';
-            t.style.height = `${100 + i * 6}px`;
-            t.style.opacity = `${0.35 - i * 0.05}`;
-            t.style.background = `linear-gradient(to top, transparent, rgba(244,63,94,${0.45 - i * 0.06}))`;
-            t.style.filter = `blur(${i * 0.6}px)`;
+            t.style.height = `${90 + i * 5}px`;
+            t.style.opacity = `${0.4 - i * 0.045}`;
+            t.style.background = `linear-gradient(to top, transparent, rgba(244,63,94,${0.5 - i * 0.05}))`;
+            t.style.filter = `blur(${i * 0.5}px)`;
             clockFace.appendChild(t);
             trailEls.push(t);
         }
-
         const trailBack = document.createElement('div');
         trailBack.className = 'trail';
-        trailBack.style.height = '30px';
-        trailBack.style.opacity = '0.3';
-        trailBack.style.background = 'linear-gradient(to bottom, transparent, rgba(244,63,94,0.35))';
-        trailBack.style.filter = 'blur(2px)';
+        trailBack.style.height = '28px';
+        trailBack.style.opacity = '0.35';
+        trailBack.style.background = 'linear-gradient(to bottom, transparent, rgba(244,63,94,0.4))';
+        trailBack.style.filter = 'blur(1.5px)';
         trailBack.style.zIndex = '1';
         clockFace.appendChild(trailBack);
 
-        const hourMarks = [];
+        const dateWindow = document.createElement('div');
+        dateWindow.className = 'date-window';
+        dateWindow.id = 'dateWindow';
+        clockFace.appendChild(dateWindow);
 
+        const hourMarks = [];
         for (let i = 1; i <= 60; i++) {
-            const mark = document.createElement('div');
             const angle = i * 6 * Math.PI / 180;
             const radius = 142;
+            const mark = document.createElement('div');
 
             if (i % 5 === 0) {
                 mark.className = 'mark hour-mark';
                 mark.dataset.hour = i / 5;
-                mark.style.transform = `rotate(${i * 6}deg) translate(${radius - 8}px, -0.5px)`;
+                mark.style.transform = `rotate(${i * 6}deg) translate(${radius - 10}px, -1px)`;
                 clockFace.appendChild(mark);
                 hourMarks.push(mark);
 
@@ -557,58 +1258,430 @@
                 num.className = 'number';
                 num.textContent = i / 5;
                 num.style.transform =
-                    `translate(calc(-50% + ${Math.sin(angle) * (radius - 28)}px),
-                               calc(-50% - ${Math.cos(angle) * (radius - 28)}px))`;
+                    `translate(calc(-50% + ${Math.sin(angle) * (radius - 30)}px),
+                               calc(-50% - ${Math.cos(angle) * (radius - 30)}px))`;
                 clockFace.appendChild(num);
+            } else if (i % 3 === 0) {
+                mark.className = 'mark quarter-mark';
+                mark.style.transform = `rotate(${i * 6}deg) translate(${radius - 7}px, -0.5px)`;
+                clockFace.appendChild(mark);
             } else {
                 mark.className = 'mark min-mark';
-                mark.style.transform = `rotate(${i * 6}deg) translate(${radius - 4}px, -0.5px)`;
+                mark.style.transform = `rotate(${i * 6}deg) translate(${radius - 5}px, -0.5px)`;
                 clockFace.appendChild(mark);
             }
         }
 
-        let prevHour = -1;
+        // ==================== 音效系统 (Web Audio API) ====================
+        let audioCtx = null;
+        let alarmNodes = [];
+        let alarmTimeout = null;
 
-        function updateClock() {
-            const now = new Date();
-            const h = now.getHours();
-            const m = now.getMinutes();
-            const s = now.getSeconds();
-            const ms = now.getMilliseconds();
-
-            const secDeg = (s + ms / 1000) * 6;
-            const minDeg = (m + s / 60) * 6;
-            const hourDeg = ((h % 12) + m / 60) * 30;
-
-            hourHand.style.transform = `rotate(${hourDeg}deg)`;
-            minuteHand.style.transform = `rotate(${minDeg}deg)`;
-            secondHand.style.transform = `rotate(${secDeg}deg)`;
-
-            for (let i = 0; i < trailEls.length; i++) {
-                trailEls[i].style.transform = `rotate(${secDeg - (i + 1) * 3}deg)`;
-            }
-            trailBack.style.transform = `rotate(${secDeg + 10}deg)`;
-
-            const currentHour12 = h % 12 === 0 ? 12 : h % 12;
-            if (currentHour12 !== prevHour) {
-                hourMarks.forEach(m => m.classList.remove('active'));
-                const activeMark = hourMarks.find(m => parseInt(m.dataset.hour) === currentHour12);
-                if (activeMark) activeMark.classList.add('active');
-                prevHour = currentHour12;
-            }
-
-            document.getElementById('hours').textContent = String(h).padStart(2, '0');
-            document.getElementById('minutes').textContent = String(m).padStart(2, '0');
-            document.getElementById('seconds').textContent = String(s).padStart(2, '0');
-
-            const weekdays = ['日','一','二','三','四','五','六'];
-            document.getElementById('dateDisplay').textContent =
-                `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${weekdays[now.getDay()]}`;
-
-            requestAnimationFrame(updateClock);
+        function getAudioCtx() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            return audioCtx;
         }
 
-        updateClock();
+        function playAlarm() {
+            stopAlarm();
+            const ctx = getAudioCtx();
+            const now = ctx.currentTime;
+
+            // 三段上升音阶，模拟闹钟效果
+            const notes = [
+                { freq: 880, start: 0,    dur: 0.15 },
+                { freq: 1100,start: 0.18, dur: 0.15 },
+                { freq: 1320,start: 0.36, dur: 0.3  },
+                // 间歇后重复
+                { freq: 880, start: 0.85, dur: 0.15 },
+                { freq: 1100,start: 1.03, dur: 0.15 },
+                { freq: 1320,start: 1.21, dur: 0.3  },
+                // 第三组
+                { freq: 880, start: 1.70, dur: 0.15 },
+                { freq: 1100,start: 1.88, dur: 0.15 },
+                { freq: 1320,start: 2.06, dur: 0.5  },
+            ];
+
+            notes.forEach(({ freq, start, dur }) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0, now + start);
+                gain.gain.linearRampToValueAtTime(0.35, now + start + 0.02);
+                gain.gain.setValueAtTime(0.35, now + start + dur * 0.7);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now + start);
+                osc.stop(now + start + dur + 0.05);
+                alarmNodes.push(osc, gain);
+            });
+
+            // 自动清理
+            alarmTimeout = setTimeout(() => stopAlarm(), 3500);
+        }
+
+        function stopAlarm() {
+            alarmNodes.forEach(n => {
+                try { n.stop(); } catch(e) {}
+            });
+            alarmNodes = [];
+            if (alarmTimeout) { clearTimeout(alarmTimeout); alarmTimeout = null; }
+        }
+        const MODE_CLOCK = 'clock', MODE_STOPWATCH = 'stopwatch', MODE_TIMER = 'timer';
+        let currentMode = MODE_CLOCK;
+        let isRunning = false;
+        let stopwatchMs = 0, stopwatchStart = 0, stopwatchAccum = 0;
+        let timerTotalMs = 5 * 60 * 1000, timerRemaining = timerTotalMs, timerStart = 0, timerAccum = 0;
+        let lastFrameTime = 0, prevHour = -1;
+
+        const modeBadge = document.getElementById('modeBadge');
+        const btnAction = document.getElementById('btnAction');
+        const btnReset = document.getElementById('btnReset');
+        const centerDot = document.getElementById('centerDot');
+        const timerEditor = document.getElementById('timerEditor');
+        const timerH = document.getElementById('timerH');
+        const timerM = document.getElementById('timerM');
+        const timerS = document.getElementById('timerS');
+
+        function updateTimerEditorUI() {
+            // 只在倒计时模式且未运行时显示编辑器
+            const show = currentMode === MODE_TIMER && !isRunning;
+            timerEditor.classList.toggle('visible', show);
+
+            // 同步编辑器数值
+            const totalS = Math.floor(timerTotalMs / 1000);
+            timerH.textContent = String(Math.floor(totalS / 3600)).padStart(2, '0');
+            timerM.textContent = String(Math.floor((totalS % 3600) / 60)).padStart(2, '0');
+            timerS.textContent = String(totalS % 60).padStart(2, '0');
+
+            // 高亮匹配的预设按钮
+            const totalSec = Math.round(timerTotalMs / 1000);
+            document.querySelectorAll('.preset-chip').forEach(chip => {
+                chip.classList.toggle('active-preset', parseInt(chip.dataset.preset) === totalSec);
+            });
+        }
+
+        function applyTimerTotal(ms) {
+            // 限制范围: 1秒 ~ 99时59分59秒
+            timerTotalMs = Math.max(1000, Math.min(359999000, ms));
+            timerRemaining = timerTotalMs;
+            timerAccum = timerTotalMs;
+            updateTimerEditorUI();
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            isRunning = false;
+            stopAlarm();
+            stopwatchMs = 0; stopwatchAccum = 0;
+            timerRemaining = timerTotalMs; timerAccum = timerTotalMs;
+
+            document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+            const mb = document.querySelector(`[data-mode="${mode}"]`);
+            if (mb) mb.classList.add('active');
+
+            modeBadge.textContent = { clock: '时钟', stopwatch: '秒表', timer: '倒计时' }[mode];
+            btnAction.textContent = '▶ 开始';
+            btnAction.style.display = (mode === MODE_CLOCK) ? 'none' : '';
+            btnReset.style.display = (mode === MODE_CLOCK) ? 'none' : '';
+
+            // 所有模式下秒针、拖尾、秒数栏均保持可见
+            secondHand.style.display = '';
+            trailEls.forEach(t => t.style.display = '');
+            trailBack.style.display = '';
+            document.getElementById('colon2').style.display = '';
+            document.getElementById('seconds').style.display = '';
+            dateWindow.style.display = (mode === MODE_CLOCK) ? '' : 'none';
+
+            // 倒计时编辑器：仅在倒计时模式显示
+            updateTimerEditorUI();
+        }
+
+        function cycleMode() {
+            const modes = [MODE_CLOCK, MODE_STOPWATCH, MODE_TIMER];
+            setMode(modes[(modes.indexOf(currentMode) + 1) % modes.length]);
+        }
+
+        function toggleRun() {
+            if (currentMode === MODE_CLOCK) return;
+            isRunning = !isRunning;
+            if (isRunning) {
+                const now = performance.now();
+                if (currentMode === MODE_STOPWATCH) stopwatchStart = now;
+                else timerStart = now;
+            } else {
+                if (currentMode === MODE_STOPWATCH) stopwatchAccum = stopwatchMs;
+                else timerAccum = timerRemaining;
+            }
+            btnAction.textContent = isRunning ? '⏸ 暂停' : '▶ 继续';
+            // 运行时隐藏编辑器，暂停时恢复
+            if (currentMode === MODE_TIMER) updateTimerEditorUI();
+        }
+
+        function resetCurrent() {
+            isRunning = false;
+            stopAlarm();
+            if (currentMode === MODE_STOPWATCH) { stopwatchMs = 0; stopwatchAccum = 0; }
+            else if (currentMode === MODE_TIMER) { timerRemaining = timerTotalMs; timerAccum = timerTotalMs; }
+            btnAction.textContent = '▶ 开始';
+            if (currentMode === MODE_TIMER) updateTimerEditorUI();
+        }
+
+        document.getElementById('controlBar').addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            if (btn.dataset.mode) setMode(btn.dataset.mode);
+            else if (btn.id === 'btnAction') toggleRun();
+            else if (btn.id === 'btnReset') resetCurrent();
+        });
+
+        centerDot.addEventListener('click', cycleMode);
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                currentMode === MODE_CLOCK ? cycleMode() : toggleRun();
+            } else if (e.code === 'KeyR' && currentMode !== MODE_CLOCK) {
+                resetCurrent();
+            } else if (e.code === 'Digit1') setMode(MODE_CLOCK);
+            else if (e.code === 'Digit2') setMode(MODE_STOPWATCH);
+            else if (e.code === 'Digit3') setMode(MODE_TIMER);
+        });
+
+        // 倒计时编辑器：+/- 按钮
+        timerEditor.addEventListener('click', (e) => {
+            const adjBtn = e.target.closest('.adj-btn');
+            const presetChip = e.target.closest('.preset-chip');
+
+            if (adjBtn) {
+                const unit = adjBtn.dataset.unit;
+                const dir = parseInt(adjBtn.dataset.dir);
+                const totalS = Math.floor(timerTotalMs / 1000);
+                let h = Math.floor(totalS / 3600);
+                let m = Math.floor((totalS % 3600) / 60);
+                let s = totalS % 60;
+
+                // 长按加速
+                const step = e.shiftKey ? 10 : 1;
+
+                if (unit === 'h') h = Math.max(0, Math.min(99, h + dir * step));
+                else if (unit === 'm') m = Math.max(0, Math.min(59, m + dir * step));
+                else if (unit === 's') s = Math.max(0, Math.min(59, s + dir * step));
+
+                applyTimerTotal((h * 3600 + m * 60 + s) * 1000);
+            }
+
+            if (presetChip) {
+                const sec = parseInt(presetChip.dataset.preset);
+                applyTimerTotal(sec * 1000);
+            }
+        });
+
+        // 长按按钮支持（按住持续加减）
+        let holdInterval = null;
+        timerEditor.addEventListener('mousedown', (e) => {
+            const adjBtn = e.target.closest('.adj-btn');
+            if (!adjBtn) return;
+            e.preventDefault();
+            // 第一次点击由上面的 click 处理
+            holdInterval = setTimeout(() => {
+                holdInterval = setInterval(() => {
+                    const unit = adjBtn.dataset.unit;
+                    const dir = parseInt(adjBtn.dataset.dir);
+                    const totalS = Math.floor(timerTotalMs / 1000);
+                    let h = Math.floor(totalS / 3600);
+                    let m = Math.floor((totalS % 3600) / 60);
+                    let s = totalS % 60;
+                    if (unit === 'h') h = Math.max(0, Math.min(99, h + dir));
+                    else if (unit === 'm') m = Math.max(0, Math.min(59, m + dir));
+                    else if (unit === 's') s = Math.max(0, Math.min(59, s + dir));
+                    applyTimerTotal((h * 3600 + m * 60 + s) * 1000);
+                }, 80);
+            }, 400);
+        });
+        timerEditor.addEventListener('mouseup', () => { clearInterval(holdInterval); clearTimeout(holdInterval); });
+        timerEditor.addEventListener('mouseleave', () => { clearInterval(holdInterval); clearTimeout(holdInterval); });
+
+        // 点击数字时钟：倒计时模式下快速切换预设（保留旧功能作为快捷方式）
+        document.getElementById('digitalClock').addEventListener('click', () => {
+            if (currentMode !== MODE_TIMER || isRunning) return;
+            const presets = [60, 180, 300, 600, 900, 1800, 3600];
+            const curSec = Math.round(timerTotalMs / 1000);
+            const idx = presets.indexOf(curSec);
+            const nextSec = presets[(idx + 1) % presets.length];
+            applyTimerTotal(nextSec * 1000);
+        });
+
+        // ==================== 显示更新 ====================
+        function fmtMs(ms) {
+            const totalS = Math.max(0, Math.floor(ms / 1000));
+            return {
+                h: Math.floor(totalS / 3600),
+                m: Math.floor((totalS % 3600) / 60),
+                s: totalS % 60,
+                cs: Math.floor((ms % 1000) / 10),
+            };
+        }
+
+        function updateDisplay() {
+            const now = new Date();
+            const realH = now.getHours(), realM = now.getMinutes(), realS = now.getSeconds();
+            document.getElementById('hours').textContent = String(realH).padStart(2, '0');
+            document.getElementById('minutes').textContent = String(realM).padStart(2, '0');
+            document.getElementById('seconds').textContent = String(realS).padStart(2, '0');
+            const wd = ['日','一','二','三','四','五','六'];
+            document.getElementById('dateDisplay').textContent =
+                `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${wd[now.getDay()]}`;
+            dateWindow.textContent = `${now.getMonth()+1}月${now.getDate()}日`;
+
+            const ch12 = realH % 12 === 0 ? 12 : realH % 12;
+            if (ch12 !== prevHour) {
+                hourMarks.forEach(m => m.classList.remove('active'));
+                const am = hourMarks.find(m => parseInt(m.dataset.hour) === ch12);
+                if (am) am.classList.add('active');
+                prevHour = ch12;
+            }
+        }
+
+        function updateHands(h, m, s, ms) {
+            const sd = (s + ms / 1000) * 6;
+            const md = (m + s / 60) * 6;
+            const hd = ((h % 12) + m / 60) * 30;
+            hourHand.style.transform = `rotate(${hd}deg)`;
+            minuteHand.style.transform = `rotate(${md}deg)`;
+            secondHand.style.transform = `rotate(${sd}deg)`;
+            for (let i = 0; i < trailEls.length; i++)
+                trailEls[i].style.transform = `rotate(${sd - (i + 1) * 2.5}deg)`;
+            trailBack.style.transform = `rotate(${sd + 8}deg)`;
+
+            // 秒针尖端粒子
+            emitHandParticles(sd);
+        }
+
+        // ==================== 秒针尖端粒子发射器 ====================
+        const handParticles = [];
+        const MAX_HAND_PARTICLES = 15;
+        function emitHandParticles(angleDeg) {
+            const angleRad = (angleDeg - 90) * Math.PI / 180;
+            const cx = 160, cy = 160, tipR = 108;
+            const tx = cx + Math.cos(angleRad) * tipR;
+            const ty = cy + Math.sin(angleRad) * tipR;
+
+            if (Math.random() < 0.6) {
+                handParticles.push({
+                    x: tx, y: ty,
+                    vx: Math.cos(angleRad) * (0.3 + Math.random() * 0.8),
+                    vy: Math.sin(angleRad) * (0.3 + Math.random() * 0.8),
+                    life: 1,
+                    decay: 0.02 + Math.random() * 0.04,
+                    size: 1 + Math.random() * 2,
+                });
+            }
+        }
+        function updateHandParticles() {
+            for (let i = handParticles.length - 1; i >= 0; i--) {
+                const p = handParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= p.decay;
+                if (p.life <= 0) { handParticles.splice(i, 1); continue; }
+            }
+            // 限制数量
+            while (handParticles.length > MAX_HAND_PARTICLES) handParticles.shift();
+        }
+
+        // 在手部粒子容器创建（使用绝对定位在clockFace内）
+        const handParticleContainer = document.createElement('div');
+        handParticleContainer.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:8;';
+        clockFace.appendChild(handParticleContainer);
+
+        function renderHandParticles() {
+            // 清理旧DOM粒子
+            while (handParticleContainer.children.length > handParticles.length) {
+                handParticleContainer.removeChild(handParticleContainer.lastChild);
+            }
+            // 确保足够DOM元素
+            while (handParticleContainer.children.length < handParticles.length) {
+                const el = document.createElement('div');
+                el.style.cssText = 'position:absolute;border-radius:50%;pointer-events:none;';
+                handParticleContainer.appendChild(el);
+            }
+            for (let i = 0; i < handParticles.length; i++) {
+                const p = handParticles[i];
+                const el = handParticleContainer.children[i];
+                el.style.left = `${p.x}px`;
+                el.style.top = `${p.y}px`;
+                el.style.width = `${p.size}px`;
+                el.style.height = `${p.size}px`;
+                el.style.background = `rgba(255,180,180,${p.life})`;
+                el.style.boxShadow = `0 0 ${4 * p.life}px ${2 * p.life}px rgba(244,63,94,${p.life * 0.8})`;
+                el.style.opacity = p.life;
+            }
+        }
+
+        // ==================== 主循环 (统一 requestAnimationFrame) ====================
+        function loop(ts) {
+            if (!lastFrameTime) lastFrameTime = ts;
+            const dt = Math.min(ts - lastFrameTime, 100);
+            lastFrameTime = ts;
+
+            updateRingSparks();
+            updateHandParticles();
+            renderHandParticles();
+
+            const now = new Date();
+
+            if (currentMode === MODE_CLOCK) {
+                updateDisplay();
+                updateHands(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+            } else if (currentMode === MODE_STOPWATCH) {
+                if (isRunning) stopwatchMs = stopwatchAccum + (ts - stopwatchStart);
+                const t = fmtMs(stopwatchMs);
+                document.getElementById('hours').textContent = String(t.h).padStart(2, '0');
+                document.getElementById('minutes').textContent = String(t.m).padStart(2, '0');
+                document.getElementById('seconds').textContent = String(t.s).padStart(2, '0') + '.' + String(t.cs).padStart(2, '0');
+                const totalS = stopwatchMs / 1000;
+                updateHands((totalS / 3600) % 12, (totalS / 60) % 60, totalS % 60, stopwatchMs % 1000);
+            } else if (currentMode === MODE_TIMER) {
+                if (isRunning) {
+                    timerRemaining = timerAccum - (ts - timerStart);
+                    if (timerRemaining <= 0) {
+                        timerRemaining = 0;
+                        isRunning = false;
+                        btnAction.textContent = '▶ 开始';
+                        // 闪烁效果：先清除再触发以确保可重复
+                        const dc = document.getElementById('digitalClock');
+                        dc.style.animation = 'none';
+                        dc.offsetHeight; // 强制重排
+                        dc.style.animation = 'timerFlash 0.5s ease 3';
+                        updateTimerEditorUI();
+                        playAlarm();
+                    }
+                }
+                const t = fmtMs(timerRemaining);
+                document.getElementById('hours').textContent = String(t.h).padStart(2, '0');
+                document.getElementById('minutes').textContent = String(t.m).padStart(2, '0');
+                document.getElementById('seconds').textContent = String(t.s).padStart(2, '0') + '.' + String(t.cs).padStart(2, '0');
+                const totalS = timerRemaining / 1000;
+                if (timerRemaining > 0) {
+                    updateHands((totalS / 3600) % 12, (totalS / 60) % 60, totalS % 60, timerRemaining % 1000);
+                } else {
+                    updateHands(0, 0, 0, 0);
+                }
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        // 初始化
+        applyTheme('ocean');
+        setMode(MODE_CLOCK);
+        updateDisplay();
+        requestAnimationFrame(loop);
     </script>
 </body>
 </html>
